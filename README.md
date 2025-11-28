@@ -2,6 +2,8 @@
 
 > 您的每日 AI 信息整合,分析,日报,播客内容生成平台。
 
+> 📖 **快速开始？** 查看 [快速参考卡片](快速参考.md) | [GitHub Pages 配置](GITHUB_PAGES_配置指南.md) | [Webhook 通知](WEBHOOK_QUICKSTART.md)
+
 **AI 资讯日报** 是一个基于 **Cloudflare Workers** 驱动的内容聚合与生成平台。它每日为您精选 AI 领域的最新动态，包括行业新闻、热门开源项目、前沿学术论文、科技大V社交媒体言论，并通过 **Google Gemini** 模型进行智能处理与摘要生成，最终自动发布到 GitHub Pages 生成 AI 日报。
 
 我们的目标是成为您在瞬息万变的 AI 浪潮中保持领先的得力助手，让您高效获取最有价值的信息。
@@ -135,6 +137,7 @@
 *   **🛠️ [技术架构与部署指南](docs/DEPLOYMENT.md)**：深入了解项目的工作原理和详细的部署步骤。
 *   **🧩 [项目拓展性指南](docs/EXTENDING.md)**：学习如何添加新的数据源、自定义生成内容格式。
 *   **🔔 [Webhook 通知配置指南](docs/WEBHOOK.md)**：配置 webhook，在日刊发布后自动发送通知到钉钉、企业微信、飞书等平台。
+*   **🌐 [GitHub Pages 配置指南](GITHUB_PAGES_配置指南.md)**：了解如何访问和自定义你的 GitHub Pages 网站。
 
 ---
 
