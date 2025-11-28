@@ -38,7 +38,7 @@ rm -rf "$REPO_NAME"
 
 # 4. Fetch: Clone the latest content from GitHub.
 echo "--> Cloning repository from $REPO_URL..."
-git clone -b diy "$REPO_URL"
+git clone -b main "$REPO_URL"
 
 # Define the path to the cloned repository for easier access.
 PROJECT_DIR="$WORK_DIR/$REPO_NAME"

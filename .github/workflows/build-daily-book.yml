@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           # 明确指定要检出的分支
-          ref: 'diy' # 使用 diy 分支
+          ref: 'main' # 使用 main 分支
 
       - name: Archive old notes
         id: archive
@@ -151,7 +151,7 @@ jobs:
             git commit -m "docs: 自动构建日刊并归档旧月份 ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
             
             echo "正在推送到远程仓库..."
-            git push origin diy
+            git push origin main
           fi
 
       - name: Send Webhook Notification
