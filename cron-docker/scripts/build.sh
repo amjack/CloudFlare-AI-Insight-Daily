@@ -38,7 +38,7 @@ rm -rf "$REPO_NAME"
 
 # 4. Fetch: Clone the latest content from GitHub.
 echo "--> Cloning repository from $REPO_URL..."
-git clone -b book "$REPO_URL"
+git clone -b diy "$REPO_URL"
 
 # Define the path to the cloned repository for easier access.
 PROJECT_DIR="$WORK_DIR/$REPO_NAME"
@@ -74,5 +74,13 @@ echo "--> Uploading the archive..."
 # Upload the archive using a custom script.
 # Note: Ensure github.sh is in the $WORK_DIR or in your PATH.
 # ./github.sh upload "archive.tar.gz" "today/archive.tar.gz" "pushbook"
+
+# 7. Send Webhook Notification
+echo "--> Sending webhook notification..."
+if [ -n "$WEBHOOK_URL" ] && [ -f "$WORK_DIR/webhook.sh" ]; then
+    "$WORK_DIR/webhook.sh" || echo "Warning: webhook notification failed, continuing..."
+else
+    echo "WEBHOOK_URL not configured or webhook.sh not found, skipping notification"
+fi
 
 echo "--- Workflow completed successfully! ---"

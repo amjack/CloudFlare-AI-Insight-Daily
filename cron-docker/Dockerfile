@@ -37,7 +37,8 @@ RUN chmod +x /app/scripts/* /usr/local/bin/entrypoint.sh && \
 
 # 6. 将 cron 任务写入配置文件
 # 使用 echo -e 来处理换行符，更清晰
-RUN echo "0 8 * * * /app/scripts/build.sh /app/scripts/work >> /proc/1/fd/1 2>> /proc/1/fd/2" > /etc/crontabs/root && \
+# 每天北京时间早上9点执行（容器已设置时区为 Asia/Shanghai）
+RUN echo "0 9 * * * /app/scripts/build.sh /app/scripts/work >> /proc/1/fd/1 2>> /proc/1/fd/2" > /etc/crontabs/root && \
     # crontab 文件权限必须是 600
     chmod 600 /etc/crontabs/root
 
@@ -52,6 +53,10 @@ ENV REPO_NAME="CloudFlare-AI-Insight-Daily"
 ENV GITHUB_TOKEN="github_pat_xxxxxx"
 # 图片代理路径
 ENV IMG_PROXY_URL="https://autoproxy"
+# Webhook 通知配置 (可选)
+# ENV WEBHOOK_URL="https://your-webhook-url"
+# ENV WEBHOOK_TYPE="generic"
+# ENV GITHUB_PAGES_URL="https://your-username.github.io/your-repo"
 
 # 8. 启动 cron 服务
 # entrypoint.sh 将会执行初始化任务，然后启动 CMD 中的命令

@@ -15,11 +15,19 @@ fi
 echo "执行首次构建..."
 /app/scripts/build.sh /app/scripts/work
 
+# 2. 发送 webhook 通知（如果配置了）
+if [ -n "$WEBHOOK_URL" ] && [ -f "/app/scripts/work/webhook.sh" ]; then
+    echo "发送 webhook 通知..."
+    /app/scripts/work/webhook.sh || echo "警告: webhook 通知发送失败，继续执行..."
+else
+    echo "未配置 WEBHOOK_URL 或 webhook.sh 不存在，跳过通知"
+fi
+
 mdbook serve --open -p 4399 -n 0.0.0.0 /app/scripts/work &
 
 echo "--- 初始化完成，启动 cron 服务 ---"
 
-# 2. 执行 Dockerfile CMD 中定义的命令 (即 "crond -f -l 8")
+# 3. 执行 Dockerfile CMD 中定义的命令 (即 "crond -f -l 8")
 # exec 会用 CMD 的命令替换当前的 shell 进程，
 # 使得 crond 成为容器的主进程 (PID 1)，能够正确接收和处理信号。
 # 这是保持容器运行的关键。
