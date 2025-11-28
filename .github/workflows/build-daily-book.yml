@@ -1,9 +1,9 @@
 name: Build Daily Journal
 
 on:
-  # 每天UTC时间0点自动触发 (对应北京时间早上8点)
+  # 每天北京时间早上9点自动触发 (UTC时间凌晨1点)
   schedule:
-    - cron: '0 23 * * *'
+    - cron: '0 1 * * *'
     
   # 手动触发
   workflow_dispatch:
@@ -21,14 +21,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           # 明确指定要检出的分支
-          ref: 'book' # <-- 请将 'book' 替换为你的目标分支名
+          ref: 'diy' # 使用 diy 分支
 
       - name: Archive old notes
         id: archive
         run: |
           echo "开始检查并归档旧的日刊..."
+          
+          # 检查 daily 目录是否存在
+          if [ ! -d "daily" ]; then
+            echo "daily/ 目录不存在，跳过归档步骤。"
+            exit 0
+          fi
+          
           # 查找最新文件以确定当前月份
-          LATEST_DAILY_FILE=$(find daily -type f -name "*.md" | sort -r | head -n 1)
+          LATEST_DAILY_FILE=$(find daily -type f -name "*.md" 2>/dev/null | sort -r | head -n 1)
           if [ -z "$LATEST_DAILY_FILE" ]; then
             echo "在 'daily' 目录中没有找到任何 .md 文件，跳过归档步骤。"
             exit 0
@@ -110,17 +117,137 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          git add today/ daily/
-          if [ -f "rss.xml" ]; then
-            git add rss.xml
+          # 添加文件到 git，只添加存在的目录/文件
+          if [ -d "today" ]; then
+            git add today/ || true
+            echo "已添加 today/ 目录"
           else
-            echo "rss.xml 未找到，不添加到提交中。"
+            echo "today/ 目录不存在，跳过"
+          fi
+          
+          if [ -d "daily" ]; then
+            git add daily/ || true
+            echo "已添加 daily/ 目录"
+          else
+            echo "daily/ 目录不存在，跳过"
+          fi
+          
+          if [ -f "rss.xml" ]; then
+            git add rss.xml || true
+            echo "已添加 rss.xml 文件"
+          else
+            echo "rss.xml 未找到，跳过"
           fi
 
+          # 显示 git 状态用于调试
+          echo "Git 状态："
+          git status
+          
+          # 检查是否有变更需要提交
           if git diff --staged --quiet; then
             echo "没有文件变更，无需提交。"
           else
             echo "检测到文件变更，正在提交..."
-            git commit -m "docs: 自动构建日刊并归档旧月份 (`date -u`)"
-            git push
+            git commit -m "docs: 自动构建日刊并归档旧月份 ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+            
+            echo "正在推送到远程仓库..."
+            git push origin diy
+          fi
+
+      - name: Send Webhook Notification
+        if: success()
+        run: |
+          # 检查 WEBHOOK_URL 是否配置
+          if [ -z "${{ secrets.WEBHOOK_URL }}" ]; then
+            echo "未配置 WEBHOOK_URL，跳过 webhook 通知"
+            exit 0
+          fi
+          
+          # 设置时区为 Asia/Shanghai (东八区)，并获取 YYYY-MM-DD 格式的日期
+          TODAY_DATE=$(TZ="Asia/Shanghai" date +%Y-%m-%d)
+          
+          # 获取 GitHub Pages URL（从仓库变量或使用默认值）
+          if [ -n "${{ vars.GITHUB_PAGES_URL }}" ]; then
+            PAGES_URL="${{ vars.GITHUB_PAGES_URL }}"
+          else
+            # 默认 GitHub Pages URL 格式
+            PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          fi
+          
+          # 构造通知消息
+          MESSAGE="${TODAY_DATE} AI日刊，地址：${PAGES_URL}"
+          
+          echo "准备发送 webhook 通知: ${MESSAGE}"
+          
+          # 根据不同的 webhook 类型发送通知
+          WEBHOOK_TYPE="${{ vars.WEBHOOK_TYPE }}"
+          
+          case "${WEBHOOK_TYPE}" in
+            "dingtalk")
+              # 钉钉 webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"msgtype\": \"text\",
+                  \"text\": {
+                    \"content\": \"${MESSAGE}\"
+                  }
+                }"
+              ;;
+            "wecom"|"wechat")
+              # 企业微信 webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"msgtype\": \"text\",
+                  \"text\": {
+                    \"content\": \"${MESSAGE}\"
+                  }
+                }"
+              ;;
+            "feishu"|"lark")
+              # 飞书 webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"msg_type\": \"text\",
+                  \"content\": {
+                    \"text\": \"${MESSAGE}\"
+                  }
+                }"
+              ;;
+            "slack")
+              # Slack webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"text\": \"${MESSAGE}\"
+                }"
+              ;;
+            "discord")
+              # Discord webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"content\": \"${MESSAGE}\"
+                }"
+              ;;
+            *)
+              # 通用 JSON webhook (默认)
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"date\": \"${TODAY_DATE}\",
+                  \"title\": \"AI日刊\",
+                  \"url\": \"${PAGES_URL}\",
+                  \"message\": \"${MESSAGE}\"
+                }"
+              ;;
+          esac
+          
+          if [ $? -eq 0 ]; then
+            echo "Webhook 通知发送成功"
+          else
+            echo "Webhook 通知发送失败"
+            exit 1
           fi

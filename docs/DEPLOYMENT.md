@@ -159,8 +159,8 @@ TWITTER_FETCH_PAGES = "2"
 ##### 部署步骤
 
 1.  **🔧 配置工作流文件**
-    *   打开 `.github/workflows/build-daily-book.yml` 文件，找到所有涉及到 `book` 分支的地方，将其修改为您计划用于存放日报站点的分支名称（例如 `gh-pages`）。
-    *   (可选) 修改文件顶部的定时任务时间，以自定义每日执行时间
+    *   打开 `.github/workflows/build-daily-book.yml` 文件，找到所有涉及到 `diy` 分支的地方，如需修改可以将其改为您计划用于存放日报站点的其他分支名称（例如 `gh-pages`）。
+    *   (可选) 修改文件顶部的定时任务时间，以自定义每日执行时间（当前设置为北京时间每天早上9点）
 
 2.  **🔧 调整mdbook配置文件**
     *   打开 `book.toml`文件，
@@ -193,11 +193,11 @@ TWITTER_FETCH_PAGES = "2"
     *   **`Dockerfile`**:
         *   修改 GITHUB相关变量 为您自己的 GitHub 仓库地址。
         *   (可选) 修改 `ENV IMAGE_PROXY_URL` 为您的图片代理地址。
-        *   (可选) 修改第6步的 `cron` 表达式，以自定义每日执行时间 (默认为 UTC 时间)。
+        *   (可选) 修改第6步的 `cron` 表达式，以自定义每日执行时间（当前设置为北京时间每天早上9点）。
 
     *   **`修改默认分支`**:
-        *   打开`scripts/build.sh`，修改第四步git clone -b book "$REPO_URL"，调整为你的分支
-        *   打开`scripts/work/github.sh`，修改BRANCH="book"，调整为你的分支
+        *   打开`scripts/build.sh`，默认使用 diy 分支：`git clone -b diy "$REPO_URL"`，如需修改可调整为你的分支
+        *   打开`scripts/work/github.sh`，默认使用 diy 分支：`BRANCH="diy"`，如需修改可调整为你的分支
 
     *   **`scripts/work/book.toml`**:
         *   修改 `title` 为您的日报站点标题。
