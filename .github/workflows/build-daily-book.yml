@@ -12,7 +12,7 @@ jobs:
   build-book:
     runs-on: ubuntu-latest
       
-    # 需要写入权限来提交生成的文件和归档的日刊
+    # 需要写入权限来提交生成的文件
     permissions:
       contents: write
 
@@ -190,39 +190,35 @@ jobs:
           
           echo "mdBook 构建完成"
 
-      - name: Commit mdBook output
+      - name: Commit and push mdBook output
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # 确保 book 目录存在且不是 submodule
-          if [ -d "book" ]; then
-            echo "book/ 目录存在，准备添加..."
-            
-            # 再次确认没有 .git 目录
-            if [ -d "book/.git" ]; then
-              rm -rf book/.git
-              echo "已删除 book/.git"
-            fi
-            
-            # 添加 book 目录的所有内容
-            git add book/*
-            git add book/.nojekyll 2>/dev/null || true
-            
-            echo "已添加 book/ 目录内容"
-          else
+          # 检查 book 目录
+          if [ ! -d "book" ]; then
             echo "错误: book/ 目录不存在"
             exit 1
           fi
           
+          echo "book/ 目录存在，内容："
+          ls -la book/
+          
+          # 添加 book 目录（强制添加，忽略 .gitignore）
+          git add -f book/
+          
+          # 显示添加的文件
+          echo "已暂存的文件："
+          git status --short
+          
           # 检查是否有变更
           if git diff --staged --quiet; then
-            echo "book/ 目录没有变更"
+            echo "没有变更需要提交"
           else
             echo "提交 mdBook 构建结果..."
-            git commit -m "自动构建 mdBook 网站 ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+            git commit -m "自动构建 mdBook 网站 [skip ci]"
             git push origin main
-            echo "mdBook 构建结果已推送"
+            echo "✅ mdBook 构建结果已推送到 main 分支"
           fi
 
       - name: Send Webhook Notification
