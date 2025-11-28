@@ -176,8 +176,17 @@ jobs:
             bash cron-docker/scripts/work/gen.sh daily || echo "生成脚本执行失败，继续..."
           fi
           
+          # 删除旧的 book 目录（如果存在）
+          rm -rf book
+          
           # 构建 mdBook
           mdbook build
+          
+          # 确保 book 目录不包含 .git（避免被当作 submodule）
+          if [ -d "book/.git" ]; then
+            echo "删除 book/.git 目录"
+            rm -rf book/.git
+          fi
           
           echo "mdBook 构建完成"
 
@@ -186,12 +195,23 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # 添加构建输出的 book 目录
+          # 确保 book 目录存在且不是 submodule
           if [ -d "book" ]; then
-            git add book/ -f
-            echo "已添加 book/ 目录"
+            echo "book/ 目录存在，准备添加..."
+            
+            # 再次确认没有 .git 目录
+            if [ -d "book/.git" ]; then
+              rm -rf book/.git
+              echo "已删除 book/.git"
+            fi
+            
+            # 添加 book 目录的所有内容
+            git add book/*
+            git add book/.nojekyll 2>/dev/null || true
+            
+            echo "已添加 book/ 目录内容"
           else
-            echo "book/ 目录不存在"
+            echo "错误: book/ 目录不存在"
             exit 1
           fi
           
