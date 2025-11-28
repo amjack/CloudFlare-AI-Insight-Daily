@@ -1,9 +1,11 @@
 [book]
 authors = []
 language = "zh"
-src = "src"
-title = "By 张褚"
+src = "."
+title = "AI 日刊 - By 张褚"
 create-missing = true  
 
 [output.html]
-git-repository-url = "https://github.com/amjack/CloudFlare-AI-Insight-Daily" # 替换成你的仓库地址
+git-repository-url = "https://github.com/amjack/CloudFlare-AI-Insight-Daily"
+default-theme = "light"
+preferred-dark-theme = "navy"

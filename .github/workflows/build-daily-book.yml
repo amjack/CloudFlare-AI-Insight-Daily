@@ -154,6 +154,57 @@ jobs:
             git push origin main
           fi
 
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: 'latest'
+
+      - name: Build mdBook
+        run: |
+          echo "开始构建 mdBook..."
+          
+          # 检查 daily 目录是否存在
+          if [ ! -d "daily" ]; then
+            echo "daily/ 目录不存在，创建空目录"
+            mkdir -p daily
+            echo "# AI 日刊" > daily/README.md
+          fi
+          
+          # 生成 SUMMARY.md（如果有生成脚本）
+          if [ -f "cron-docker/scripts/work/gen.sh" ]; then
+            echo "运行生成脚本..."
+            bash cron-docker/scripts/work/gen.sh daily || echo "生成脚本执行失败，继续..."
+          fi
+          
+          # 构建 mdBook
+          mdbook build
+          
+          echo "mdBook 构建完成"
+
+      - name: Commit mdBook output
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 添加构建输出的 book 目录
+          if [ -d "book" ]; then
+            git add book/ -f
+            echo "已添加 book/ 目录"
+          else
+            echo "book/ 目录不存在"
+            exit 1
+          fi
+          
+          # 检查是否有变更
+          if git diff --staged --quiet; then
+            echo "book/ 目录没有变更"
+          else
+            echo "提交 mdBook 构建结果..."
+            git commit -m "自动构建 mdBook 网站 ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+            git push origin main
+            echo "mdBook 构建结果已推送"
+          fi
+
       - name: Send Webhook Notification
         if: success()
         run: |
