@@ -1,0 +1,320 @@
+name: Build Daily Journal
+
+on:
+  # 每天北京时间早上9点自动触发 (UTC时间凌晨1点)
+  schedule:
+    - cron: '0 1 * * *'
+    
+  # 手动触发
+  workflow_dispatch:
+  
+jobs:
+  build-book:
+    runs-on: ubuntu-latest
+      
+    # 需要写入权限来提交生成的文件
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # 明确指定要检出的分支
+          ref: 'main' # 使用 main 分支
+
+      - name: Archive old notes
+        id: archive
+        run: |
+          echo "开始检查并归档旧的日刊..."
+          
+          # 检查 daily 目录是否存在
+          if [ ! -d "daily" ]; then
+            echo "daily/ 目录不存在，跳过归档步骤。"
+            exit 0
+          fi
+          
+          # 查找最新文件以确定当前月份
+          LATEST_DAILY_FILE=$(find daily -type f -name "*.md" 2>/dev/null | sort -r | head -n 1)
+          if [ -z "$LATEST_DAILY_FILE" ]; then
+            echo "在 'daily' 目录中没有找到任何 .md 文件，跳过归档步骤。"
+            exit 0
+          fi
+          
+          LATEST_MONTH=$(basename "$LATEST_DAILY_FILE" .md | cut -d'-' -f1,2)
+          echo "当前最新月份是: $LATEST_MONTH"
+
+          # 仅遍历 daily/ 根目录下的 md 文件进行归档
+          for file in daily/*.md; do
+            # 如果根目录下没有md文件，循环会匹配到 "daily/*.md" 字符串，需要跳过
+            [ -e "$file" ] || continue
+            
+            FILE_MONTH=$(basename "$file" .md | cut -d'-' -f1,2)
+            
+            if [ "$FILE_MONTH" != "$LATEST_MONTH" ]; then
+              TARGET_DIR="daily/$FILE_MONTH"
+              mkdir -p "$TARGET_DIR"
+              echo "归档文件: $file -> $TARGET_DIR/"
+              mv "$file" "$TARGET_DIR/"
+            fi
+          done
+          echo "文件归档检查完成。"
+
+      - name: Trigger RSS Data Write (2 attempts, 3 retries each)
+        run: |
+          # 检查 `WRITE_RSS_URL` 变量是否已设置
+          if [ -z "${{ vars.WRITE_RSS_URL }}" ]; then
+            echo "警告: WRITE_RSS_URL 仓库变量未设置或为空，跳过此步骤。"
+            exit 0
+          fi
+
+          # 设置时区为 Asia/Shanghai (东八区)，并获取 YYYY-MM-DD 格式的日期
+          TODAY_DATE=$(TZ="Asia/Shanghai" date +%Y-%m-%d)
+          FULL_URL="${{ vars.WRITE_RSS_URL }}?date=$TODAY_DATE"
+          
+          echo "将向以下 URL 发送2次请求（每次请求若失败则重试3次）:"
+          echo "$FULL_URL"
+          
+          # 循环两次，发送两次独立的请求
+          for i in 1 2
+          do
+            echo "---"
+            echo "正在发送第 $i 次请求..."
+            
+            # 使用 curl 发起请求，并配置重试逻辑
+            # -f: 在遇到服务器HTTP错误时，以错误码退出（对CI/CD很重要）
+            # -sS: 静默模式，但仍然显示错误信息
+            # --retry 3: 如果命令失败，则最多重试3次
+            # --retry-delay 5: 每次重试之间等待5秒
+            # --retry-connrefused: 在“连接被拒绝”时也进行重试，增强网络抖动的鲁棒性
+            if curl -fsS --retry 3 --retry-delay 5 --retry-connrefused "$FULL_URL"; then
+              echo "第 $i 次请求成功。"
+            else
+              echo "错误：第 $i 次请求在3次重试后仍然失败。"
+              # 使整个步骤失败
+              exit 1
+            fi
+          done
+          
+          echo "---"
+          echo "两次请求均已成功发送。"
+          
+      - name: Download RSS Feed
+        run: |
+          if [ -z "${{ vars.RSS_FEED_URL }}" ]; then
+            echo "警告: RSS_FEED_URL 仓库变量未设置或为空，跳过下载。"
+          else
+            echo "正在从 ${{ vars.RSS_FEED_URL }} 下载 RSS Feed..."
+            if wget -O rss.xml "${{ vars.RSS_FEED_URL }}" --timeout=30 --tries=3; then
+              echo "RSS Feed 已成功下载到 rss.xml"
+            else
+              echo "错误: 下载 RSS Feed 失败。wget 返回错误码 $?。"
+            fi
+          fi
+          
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 添加文件到 git，只添加存在的目录/文件
+          if [ -d "today" ]; then
+            git add today/ || true
+            echo "已添加 today/ 目录"
+          else
+            echo "today/ 目录不存在，跳过"
+          fi
+          
+          if [ -d "daily" ]; then
+            git add daily/ || true
+            echo "已添加 daily/ 目录"
+          else
+            echo "daily/ 目录不存在，跳过"
+          fi
+          
+          if [ -f "rss.xml" ]; then
+            git add rss.xml || true
+            echo "已添加 rss.xml 文件"
+          else
+            echo "rss.xml 未找到，跳过"
+          fi
+
+          # 显示 git 状态用于调试
+          echo "Git 状态："
+          git status
+          
+          # 检查是否有变更需要提交
+          if git diff --staged --quiet; then
+            echo "没有文件变更，无需提交。"
+          else
+            echo "检测到文件变更，正在提交..."
+            git commit -m "docs: 自动构建日刊并归档旧月份 ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
+            
+            echo "正在推送到远程仓库..."
+            git push origin main
+          fi
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: 'latest'
+
+      - name: Build mdBook
+        run: |
+          echo "开始构建 mdBook..."
+          
+          # 检查 daily 目录是否存在
+          if [ ! -d "daily" ]; then
+            echo "daily/ 目录不存在，创建空目录"
+            mkdir -p daily
+            echo "# AI 日刊" > daily/README.md
+          fi
+          
+          # 生成 SUMMARY.md（如果有生成脚本）
+          if [ -f "cron-docker/scripts/work/gen.sh" ]; then
+            echo "运行生成脚本..."
+            bash cron-docker/scripts/work/gen.sh daily || echo "生成脚本执行失败，继续..."
+          fi
+          
+          # 删除旧的 book 目录（如果存在）
+          rm -rf book
+          
+          # 构建 mdBook
+          mdbook build
+          
+          # 确保 book 目录不包含 .git（避免被当作 submodule）
+          if [ -d "book/.git" ]; then
+            echo "删除 book/.git 目录"
+            rm -rf book/.git
+          fi
+          
+          echo "mdBook 构建完成"
+
+      - name: Commit and push mdBook output
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 检查 book 目录
+          if [ ! -d "book" ]; then
+            echo "错误: book/ 目录不存在"
+            exit 1
+          fi
+          
+          echo "book/ 目录存在，内容："
+          ls -la book/
+          
+          # 添加 book 目录（强制添加，忽略 .gitignore）
+          git add -f book/
+          
+          # 显示添加的文件
+          echo "已暂存的文件："
+          git status --short
+          
+          # 检查是否有变更
+          if git diff --staged --quiet; then
+            echo "没有变更需要提交"
+          else
+            echo "提交 mdBook 构建结果..."
+            git commit -m "自动构建 mdBook 网站 [skip ci]"
+            git push origin main
+            echo "✅ mdBook 构建结果已推送到 main 分支"
+          fi
+
+      - name: Send Webhook Notification
+        if: success()
+        run: |
+          # 检查 WEBHOOK_URL 是否配置
+          if [ -z "${{ secrets.WEBHOOK_URL }}" ]; then
+            echo "未配置 WEBHOOK_URL，跳过 webhook 通知"
+            exit 0
+          fi
+          
+          # 设置时区为 Asia/Shanghai (东八区)，并获取 YYYY-MM-DD 格式的日期
+          TODAY_DATE=$(TZ="Asia/Shanghai" date +%Y-%m-%d)
+          
+          # 获取 GitHub Pages URL（从仓库变量或使用默认值）
+          if [ -n "${{ vars.GITHUB_PAGES_URL }}" ]; then
+            PAGES_URL="${{ vars.GITHUB_PAGES_URL }}"
+          else
+            # 默认 GitHub Pages URL 格式
+            PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          fi
+          
+          # 构造通知消息
+          MESSAGE="${TODAY_DATE} AI日刊，地址：${PAGES_URL}"
+          
+          echo "准备发送 webhook 通知: ${MESSAGE}"
+          
+          # 根据不同的 webhook 类型发送通知
+          WEBHOOK_TYPE="${{ vars.WEBHOOK_TYPE }}"
+          
+          case "${WEBHOOK_TYPE}" in
+            "dingtalk")
+              # 钉钉 webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"msgtype\": \"text\",
+                  \"text\": {
+                    \"content\": \"${MESSAGE}\"
+                  }
+                }"
+              ;;
+            "wecom"|"wechat")
+              # 企业微信 webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"msgtype\": \"text\",
+                  \"text\": {
+                    \"content\": \"${MESSAGE}\"
+                  }
+                }"
+              ;;
+            "feishu"|"lark")
+              # 飞书 webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"msg_type\": \"text\",
+                  \"content\": {
+                    \"text\": \"${MESSAGE}\"
+                  }
+                }"
+              ;;
+            "slack")
+              # Slack webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"text\": \"${MESSAGE}\"
+                }"
+              ;;
+            "discord")
+              # Discord webhook
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"content\": \"${MESSAGE}\"
+                }"
+              ;;
+            *)
+              # 通用 JSON webhook (默认)
+              curl -X POST "${{ secrets.WEBHOOK_URL }}" \
+                -H 'Content-Type: application/json' \
+                -d "{
+                  \"date\": \"${TODAY_DATE}\",
+                  \"title\": \"AI日刊\",
+                  \"url\": \"${PAGES_URL}\",
+                  \"message\": \"${MESSAGE}\"
+                }"
+              ;;
+          esac
+          
+          if [ $? -eq 0 ]; then
+            echo "Webhook 通知发送成功"
+          else
+            echo "Webhook 通知发送失败"
+            exit 1
+          fi
