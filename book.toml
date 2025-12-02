@@ -1,7 +1,7 @@
 [book]
 authors = ["张褚"]
 language = "zh"
-src = "."
+src = "docs"
 title = "AI 日刊 - By 张褚"
 
 [output.html]

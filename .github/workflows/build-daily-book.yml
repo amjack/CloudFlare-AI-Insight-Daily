@@ -1,6 +1,15 @@
 name: Build Daily Journal
 
 on:
+  # 推送到 main 分支时自动触发
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'  # 忽略纯文档修改，除了 SUMMARY.md
+      - '!SUMMARY.md'  # SUMMARY.md 修改时仍然触发
+      - '!book.toml'   # book.toml 修改时仍然触发
+  
   # 每天北京时间早上9点自动触发 (UTC时间凌晨1点)
   schedule:
     - cron: '0 1 * * *'
