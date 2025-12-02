@@ -6,5 +6,6 @@ title = "AI 日刊 - By 张褚"
 
 [output.html]
 git-repository-url = "https://github.com/amjack/CloudFlare-AI-Insight-Daily"
+site-url = "/CloudFlare-AI-Insight-Daily/"
 default-theme = "light"
 preferred-dark-theme = "navy"
