@@ -222,13 +222,8 @@ jobs:
           # 设置时区为 Asia/Shanghai (东八区)，并获取 YYYY-MM-DD 格式的日期
           TODAY_DATE=$(TZ="Asia/Shanghai" date +%Y-%m-%d)
           
-          # 获取 GitHub Pages URL（从仓库变量或使用默认值）
-          if [ -n "${{ vars.GITHUB_PAGES_URL }}" ]; then
-            PAGES_URL="${{ vars.GITHUB_PAGES_URL }}"
-          else
-            # 默认 GitHub Pages URL 格式
-            PAGES_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          fi
+          # 固定使用 ai.hubtoday.app 作为日刊地址
+          PAGES_URL="https://ai.hubtoday.app/"
           
           # 构造通知消息
           MESSAGE="${TODAY_DATE} AI日刊，地址：${PAGES_URL}"
