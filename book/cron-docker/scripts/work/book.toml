@@ -1,9 +1,0 @@
-[book]
-authors = []
-language = "zh"
-src = "CloudFlare-AI-Insight-Daily"
-title = "By 张褚"
-create-missing = true  
-
-[output.html]
-git-repository-url = "https://github.com/amjack/CloudFlare-AI-Insight-Daily" # 替换成你的仓库地址
