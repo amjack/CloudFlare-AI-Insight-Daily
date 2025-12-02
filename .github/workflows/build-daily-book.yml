@@ -190,36 +190,16 @@ jobs:
           
           echo "mdBook 构建完成"
 
-      - name: Commit and push mdBook output
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # 检查 book 目录
-          if [ ! -d "book" ]; then
-            echo "错误: book/ 目录不存在"
-            exit 1
-          fi
-          
-          echo "book/ 目录存在，内容："
-          ls -la book/
-          
-          # 添加 book 目录（强制添加，忽略 .gitignore）
-          git add -f book/
-          
-          # 显示添加的文件
-          echo "已暂存的文件："
-          git status --short
-          
-          # 检查是否有变更
-          if git diff --staged --quiet; then
-            echo "没有变更需要提交"
-          else
-            echo "提交 mdBook 构建结果..."
-            git commit -m "自动构建 mdBook 网站 [skip ci]"
-            git push origin main
-            echo "✅ mdBook 构建结果已推送到 main 分支"
-          fi
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./book
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: '自动部署 mdBook 网站'
 
       - name: Send Webhook Notification
         if: success()
