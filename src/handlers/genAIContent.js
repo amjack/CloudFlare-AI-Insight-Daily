@@ -173,9 +173,20 @@ export async function handleGenAIContent(request, env) {
             if (item) {
                 let itemText = "";
                 // Dynamically generate itemText based on item.type
-                // Add new data sources
+                // 楼市日报数据类型处理（RSS 直接抓取）
                 switch (item.type) {
-                    case 'news':
+                    // ===================== RSS 楼市数据源 =====================
+                    case 'news':      // 楼市资讯
+                    case 'finance':   // 财经资讯
+                    case 'policy':    // 政策动态
+                    case 'general':   // 综合资讯
+                    case 'market':    // 市场数据（兼容旧配置）
+                    case 'city':      // 城市聚焦（兼容旧配置）
+                        itemText = `【${item.source || '资讯'}】\n标题: ${item.title}\n发布时间: ${item.published_date}\n链接: ${item.url}\n内容摘要: ${stripHtml(item.details.content_html)}`;
+                        break;
+                    
+                    // ===================== 原有数据源 (保留兼容) =====================
+                    case 'aiNews':
                         itemText = `News Title: ${item.title}\nPublished: ${item.published_date}\nUrl: ${item.url}\nContent Summary: ${stripHtml(item.details.content_html)}`;
                         break;
                     case 'project':
@@ -187,12 +198,12 @@ export async function handleGenAIContent(request, env) {
                     case 'socialMedia':
                         itemText = `socialMedia Post by ${item.authors}：Published: ${item.published_date}\nUrl: ${item.url}\nContent: ${stripHtml(item.details.content_html)}`;
                         break;
+                    
                     default:
-                        // Fallback for unknown types or if more specific details are not available
-                        itemText = `Type: ${item.type}\nTitle: ${item.title || 'N/A'}\nDescription: ${item.description || 'N/A'}\nURL: ${item.url || 'N/A'}`;
-                        if (item.published_date) itemText += `\nPublished: ${item.published_date}`;
-                        if (item.source) itemText += `\nSource: ${item.source}`;
-                        if (item.details && item.details.content_html) itemText += `\nContent: ${stripHtml(item.details.content_html)}`;
+                        // Fallback for unknown types
+                        itemText = `【${item.source || item.type}】\n标题: ${item.title || 'N/A'}\n描述: ${item.description || 'N/A'}\n链接: ${item.url || 'N/A'}`;
+                        if (item.published_date) itemText += `\n发布时间: ${item.published_date}`;
+                        if (item.details && item.details.content_html) itemText += `\n内容: ${stripHtml(item.details.content_html)}`;
                         break;
                 }
                 

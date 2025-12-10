@@ -1,19 +1,26 @@
-# wrangler.toml
-# 楼市洞察日报 - 基于 Cloudflare Workers 的房地产资讯聚合平台
+# wrangler.toml.example
+# 楼市洞察日报 - 配置文件模板
+# 
+# 使用方法：
+# 1. 复制此文件并重命名为 wrangler.toml
+# 2. 填入你的真实配置信息
+# 3. wrangler.toml 已加入 .gitignore，不会被提交到 Git
+
 name = "realestate-daily"
 main = "src/index.js"
 compatibility_date = "2025-05-20"
 workers_dev = true
 
 kv_namespaces = [
-  { binding = "DATA_KV", id = "你的KV数据库ID" }  # 请替换为实际的 KV ID
+  { binding = "DATA_KV", id = "你的KV数据库ID" }  # 运行 wrangler kv:namespace create "DATA_KV" 获取
 ]
 
 [vars]
 # ===================== 基础功能配置 =====================
-LOGIN_USERNAME = "admin"              # 登录用户名，请修改
-LOGIN_PASSWORD = "realestate2025"     # 登录密码，请修改
-IMG_PROXY = ""                        # 图片代理链接，用于处理图片不显示
+LOGIN_USERNAME = "admin"              # 登录用户名，请修改为你想要的
+LOGIN_PASSWORD = "your_password"      # 登录密码，请设置一个强密码
+
+IMG_PROXY = ""                        # 图片代理链接（可选）
 
 # ===================== 日报/播客配置 =====================
 DAILY_TITLE = "楼市洞察日报"
@@ -25,35 +32,33 @@ PODCAST_END = "以上就是今天的楼市要闻，投资有风险，购房需�
 # ===================== AI 模型配置 (阿里云 Qwen) =====================
 USE_MODEL_PLATFORM = "OPEN"           # 使用 OpenAI 兼容模式
 OPEN_TRANSLATE = "false"              # 楼市资讯主要是中文，无需翻译
-# OPENAI_API_KEY 通过 Cloudflare Dashboard Secrets 配置，不要硬编码在这里！
-# 配置方法见部署指南
+# OPENAI_API_KEY 通过 Cloudflare Dashboard Secrets 配置，更安全！
+# 详见部署指南「配置 API Key 环境变量」章节
 OPENAI_API_URL = "https://dashscope.aliyuncs.com/compatible-mode"
 DEFAULT_OPEN_MODEL = "qwen-plus"      # 推荐使用 qwen-plus，性价比高
 
-# 备用 Gemini 配置（可选，用于备用或对比）
+# 备用 Gemini 配置（可选）
 GEMINI_API_KEY = ""
 GEMINI_API_URL = "https://generativelanguage.googleapis.com"
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
 
 # ===================== GitHub 发布配置 =====================
-GITHUB_TOKEN = "github_pat_xxxxxx"    # 请替换为你的 GitHub Personal Access Token
-GITHUB_REPO_OWNER = "你的GitHub用户名"  # 请替换
-GITHUB_REPO_NAME = "realestate-daily"  # 请替换为你的仓库名
+GITHUB_TOKEN = "ghp_your-token"       # ⚠️ 替换为你的 GitHub Personal Access Token
+GITHUB_REPO_OWNER = "your-username"   # ⚠️ 替换为你的 GitHub 用户名
+GITHUB_REPO_NAME = "realestate-daily" # ⚠️ 替换为你的仓库名
 GITHUB_BRANCH = "main"
 
 # ===================== RSS 数据源配置 =====================
-# 直接抓取 RSS 源，无需 Folo 等第三方服务
+# 直接抓取 RSS 源，无需第三方服务
 # 多个 RSS 源用英文逗号分隔
 
 # 过滤天数：只抓取最近 N 天的内容
 RSS_FILTER_DAYS = 2
 
 # 楼市资讯 - 房产/财经相关 RSS 源
-# 财联社深度报道 + 华尔街见闻
 RSS_REALESTATE_NEWS = "https://rsshub.app/cls/depth/1000,https://rsshub.app/wallstreetcn/news/global"
 
 # 财经资讯 - 综合财经新闻
-# 36氪快讯 + 虎嗅
 RSS_FINANCE_NEWS = "https://rsshub.app/36kr/newsflashes,https://rsshub.app/huxiu/article"
 
 # 政策动态 - 如有政策类 RSS 可添加
@@ -63,29 +68,19 @@ RSS_POLICY_NEWS = ""
 RSS_GENERAL_NEWS = "https://rsshub.app/thepaper/channel/25950"
 
 # ===================== 更多可用的 RSSHub 源 =====================
-# 你可以根据需要替换或添加以下 RSS 源：
-#
 # 财经类：
 # - 财联社深度: https://rsshub.app/cls/depth/1000
 # - 华尔街见闻: https://rsshub.app/wallstreetcn/news/global
 # - 36氪快讯: https://rsshub.app/36kr/newsflashes
-# - 36氪深度: https://rsshub.app/36kr/news/latest
 # - 虎嗅: https://rsshub.app/huxiu/article
 # - 澎湃财经: https://rsshub.app/thepaper/channel/25950
 # - 界面新闻: https://rsshub.app/jiemian/list/4
-# - 经济观察报: https://rsshub.app/eeo/yaowen
 #
-# 科技类：
-# - 少数派: https://rsshub.app/sspai/index
-# - IT之家: https://rsshub.app/ithome/it
-#
-# RSSHub 官方文档: https://docs.rsshub.app/
-# 如果默认服务不稳定，可以更换为其他公共实例：
-# - https://rsshub.rssforever.com
-# - https://hub.slarker.me
+# RSSHub 文档: https://docs.rsshub.app/
 
 # ===================== 其他配置 =====================
 BOOK_LINK = ""
 INSERT_FOOT = "false"
 INSERT_AD = "false"
 INSERT_APP_URL = ""
+

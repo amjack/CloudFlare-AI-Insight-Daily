@@ -1,19 +1,56 @@
 // src/dataFetchers.js
-import NewsAggregatorDataSource from './dataSources/newsAggregator.js';
-import GithubTrendingDataSource from './dataSources/github-trending.js';
-import PapersDataSource from './dataSources/papers.js';
-import TwitterDataSource from './dataSources/twitter.js';
-import RedditDataSource from './dataSources/reddit.js';
+// 楼市洞察日报 - 数据源注册与调度模块
+// 直接抓取 RSS 源，无需依赖第三方服务
 
+// ===================== RSS 直接抓取数据源 =====================
+import { 
+    RealEstateNewsSource, 
+    FinanceNewsSource, 
+    PolicyNewsSource,
+    GeneralNewsSource 
+} from './dataSources/rss-feed.js';
 
-// Register data sources as arrays to support multiple sources per type
+// ===================== 原有 Folo 数据源 (已弃用，保留备用) =====================
+// import RealEstateNewsDataSource from './dataSources/realestate-news.js';
+// import RealEstatePolicyDataSource from './dataSources/realestate-policy.js';
+// import RealEstateMarketDataSource from './dataSources/realestate-market.js';
+// import RealEstateCityDataSource from './dataSources/realestate-city.js';
+
+/**
+ * 数据源注册表
+ * 
+ * 楼市日报数据分类（直接抓取 RSS）：
+ * - news: 楼市资讯 (房产相关新闻)
+ * - finance: 财经资讯 (财经新闻，含房产内容)
+ * - policy: 政策动态 (政策解读类)
+ * - general: 综合资讯 (其他综合类)
+ * 
+ * RSS 源在 wrangler.toml 中配置，支持多个源用逗号分隔
+ */
 export const dataSources = {
-    news: { name: '新闻', sources: [NewsAggregatorDataSource] },
-    project: { name: '项目', sources: [GithubTrendingDataSource] },
-    paper: { name: '论文', sources: [PapersDataSource] },
-    socialMedia: { name: '社交平台', sources: [TwitterDataSource, RedditDataSource] },
-    // Add new data sources here as arrays, e.g.,
-    // newType: { name: '新类型', sources: [NewTypeDataSource1, NewTypeDataSource2] },
+    // 楼市资讯 - 房产相关新闻
+    news: { 
+        name: '楼市资讯', 
+        sources: [RealEstateNewsSource] 
+    },
+    
+    // 财经资讯 - 综合财经新闻
+    finance: { 
+        name: '财经资讯', 
+        sources: [FinanceNewsSource] 
+    },
+    
+    // 政策动态 - 政策解读
+    policy: { 
+        name: '政策动态', 
+        sources: [PolicyNewsSource] 
+    },
+    
+    // 综合资讯 - 其他来源
+    general: { 
+        name: '综合资讯', 
+        sources: [GeneralNewsSource] 
+    },
 };
 
 /**

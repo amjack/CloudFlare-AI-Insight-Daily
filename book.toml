@@ -2,8 +2,8 @@
 authors = []
 language = "zh"
 src = "src"
-title = "By 何夕2077"
+title = "楼市洞察日报"
 create-missing = true  
 
 [output.html]
-git-repository-url = "https://github.com/justlovemaki/CloudFlare-AI-Insight-Daily" # 替换成你的仓库地址
+git-repository-url = "https://github.com/你的用户名/realestate-daily" # 请替换成你的仓库地址
